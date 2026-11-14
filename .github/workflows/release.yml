@@ -1,0 +1,300 @@
+name: CI and release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  package_versions:
+    runs-on: ubuntu-latest
+    outputs:
+      npm_version: ${{ steps.versions.outputs.npm }}
+      python_version: ${{ steps.versions.outputs.python }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Check package versions
+        id: versions
+        run: python scripts/check_package_versions.py
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Go tests
+        run: go test ./...
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            cli/python/pyproject.toml
+            cli/python/uv.lock
+      - name: Install Python dependencies
+        run: uv sync --project cli/python --locked
+      - name: Check Python formatting
+        run: uv run ruff format --check
+        working-directory: cli/python
+      - name: Lint Python
+        run: uv run ruff check
+        working-directory: cli/python
+      - name: Type-check Python
+        run: uv run pyrefly check
+        working-directory: cli/python
+      - name: Run Python tests
+        run: uv run python -m unittest discover -s tests
+        working-directory: cli/python
+      - name: Build Python distribution
+        run: uv build --project cli/python --out-dir dist/python
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/python/*
+          if-no-files-found: error
+
+  npm_cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: cli/npm/pnpm-lock.yaml
+      - name: Install npm CLI dependencies
+        run: pnpm --dir cli/npm install --frozen-lockfile
+      - name: Check npm CLI formatting
+        run: pnpm --dir cli/npm format:check
+      - name: Lint npm CLI
+        run: pnpm --dir cli/npm lint
+      - name: Test and build npm CLI
+        run: pnpm --dir cli/npm test
+      - name: Pack npm distribution
+        run: |
+          mkdir -p dist/npm
+          pnpm --dir cli/npm pack --pack-destination "$GITHUB_WORKSPACE/dist/npm"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: npm-package
+          path: dist/npm/*.tgz
+          if-no-files-found: error
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install web dependencies
+        run: pnpm --dir web install --frozen-lockfile
+      - name: Check web formatting
+        run: pnpm --dir web format:check
+      - name: Lint web
+        run: pnpm --dir web lint
+      - name: Build web
+        run: pnpm --dir web build
+      - name: Install Chromium for browser tests
+        run: pnpm --dir web exec playwright install --with-deps chromium
+      - name: Run browser tests
+        run: HOSHILET_TEST_BROWSER=1 go test ./internal/platform -run TestBrowser -count=1
+
+  cli_integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: cli/npm/pnpm-lock.yaml
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Install npm CLI dependencies
+        run: pnpm --dir cli/npm install --frozen-lockfile
+      - name: Run cross-CLI integration tests
+        run: make cli-test
+
+  server_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build static Linux server binaries
+        run: make release-binaries
+      - uses: actions/upload-artifact@v7
+        with:
+          name: server-binaries
+          path: dist/server/*
+          if-no-files-found: error
+
+  checks_passed:
+    needs: [package_versions, go, python, npm_cli, web, cli_integration, server_build]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'All check jobs passed.'
+
+  npm_version:
+    needs: [checks_passed, package_versions]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.ref_protected
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.lookup.outputs.exists }}
+    steps:
+      - name: Check npm registry version
+        id: lookup
+        env:
+          VERSION: ${{ needs.package_versions.outputs.npm_version }}
+        run: |
+          set -euo pipefail
+          status="$(curl --connect-timeout 10 --max-time 30 --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/hoshilet/${VERSION}")"
+          case "$status" in
+            200) exists=true ;;
+            404) exists=false ;;
+            *) echo "Unexpected npm registry response: HTTP $status" >&2; exit 1 ;;
+          esac
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
+
+  pypi_version:
+    needs: [checks_passed, package_versions]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.ref_protected
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.lookup.outputs.exists }}
+    steps:
+      - name: Check PyPI version
+        id: lookup
+        env:
+          VERSION: ${{ needs.package_versions.outputs.python_version }}
+        run: |
+          set -euo pipefail
+          status="$(curl --connect-timeout 10 --max-time 30 --retry 3 --silent --show-error --output /dev/null --write-out '%{http_code}' "https://pypi.org/pypi/hoshilet/${VERSION}/json")"
+          case "$status" in
+            200) exists=true ;;
+            404) exists=false ;;
+            *) echo "Unexpected PyPI response: HTTP $status" >&2; exit 1 ;;
+          esac
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
+
+  npm_publish:
+    needs: [checks_passed, npm_version, npm_cli]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      github.ref_protected &&
+      needs.npm_version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-package
+          path: dist/npm
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.5.1
+      - name: Publish to npm using OIDC
+        run: npm publish dist/npm/*.tgz --registry=https://registry.npmjs.org/
+
+  pypi_publish:
+    needs: [checks_passed, pypi_version, python]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      github.ref_protected &&
+      needs.pypi_version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/python
+      - uses: pypa/gh-action-pypi-publish@v1
+        with:
+          packages-dir: dist/python/
+
+  draft_release:
+    needs: [checks_passed, server_build]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_protected &&
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: server-binaries
+          path: dist/server
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; skipping creation."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --repo "$REPOSITORY" \
+            --draft \
+            --verify-tag \
+            --title "$TAG" \
+            --notes-file /dev/null \
+            dist/server/hoshilet-server-linux-amd64 \
+            dist/server/hoshilet-server-linux-arm64

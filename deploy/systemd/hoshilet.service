@@ -1,0 +1,31 @@
+[Unit]
+Description=hoshilet management and publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hoshilet
+Group=hoshilet
+StateDirectory=hoshilet
+StateDirectoryMode=0755
+ExecStart=/usr/local/bin/hoshilet-server -config /etc/hoshilet/config.json
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=40
+UMask=0022
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hoshilet
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=3G
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# Build dist/ in your CI first. Project ID here means the hoshilet internal ID.
+publish_hoshilet:
+  image: python:3.12-slim
+  id_tokens:
+    HOSHILET_ID_TOKEN:
+      aud: https://hoshilet-admin.example.com
+  variables:
+    HOSHILET_SERVER: https://hoshilet-admin.example.com
+  script:
+    - pip install hoshilet
+    - hoshilet --json deploy dist --oidc --project-id "$HOSHILET_PROJECT_ID"
+  # Package publication is an operator step. Before publishing to PyPI/npm,
+  # install the wheel/npm tarball produced from this repository instead.

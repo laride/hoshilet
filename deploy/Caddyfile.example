@@ -1,0 +1,44 @@
+# Configure these two origins once. The application never edits this file.
+hoshilet-admin.example.com {
+ root * /srv/hoshilet/admin
+ header {
+  X-Content-Type-Options nosniff
+  Cache-Control "no-cache"
+  Referrer-Policy same-origin
+  Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+ }
+ @backend path /api /api/* /auth /auth/* /healthz
+ handle @backend {
+  reverse_proxy 127.0.0.1:8080
+ }
+ handle {
+  file_server
+ }
+}
+
+hoshilet.example.com {
+	root * /var/lib/hoshilet/public
+	header {
+		X-Content-Type-Options nosniff
+		Cache-Control "no-cache"
+	}
+	@site path_regexp site ^/~([a-z0-9][a-z0-9._-]{0,62})(/.*)?$
+	handle @site {
+		route {
+			vars original_path {http.request.uri.path}
+			rewrite * /{re.site.1}{re.site.2}
+			# Preserve the external ~ URL when redirecting directory requests.
+			@directory {
+				file {path}/index.html
+				not path */
+			}
+			redir @directory {http.vars.original_path}/ 308
+			file_server {
+				disable_canonical_uris
+			}
+		}
+	}
+	handle {
+		respond 404
+	}
+}

@@ -1,0 +1,1 @@
+"""hoshilet command line client."""

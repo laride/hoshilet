@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hoshilet"
+version = "0.1.0"
+description = "Publish static sites to hoshilet using API keys or GitLab OIDC"
+requires-python = ">=3.10,<3.16"
+license = "MIT"
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://github.com/laride/hoshilet#readme"
+Repository = "https://github.com/laride/hoshilet"
+
+[project.scripts]
+hoshilet = "hoshilet.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hoshilet"]
+
+[dependency-groups]
+dev = [
+    "pyrefly>=1.4.1",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pyrefly]
+project-includes = ["src"]
+search-path = ["src"]
+python-version = "3.10"
+preset = "basic"

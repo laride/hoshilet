@@ -1,0 +1,47 @@
+stages: [test, build]
+
+go_test:
+  stage: test
+  image: golang:1.27.1-bookworm
+  script:
+    - go test ./...
+    - go vet ./...
+
+web_build:
+  stage: test
+  image: node:24-bookworm-slim
+  script:
+    - corepack enable
+    - corepack prepare pnpm@12.16.1 --activate
+    - pnpm --dir web install --frozen-lockfile
+    - pnpm --dir web build
+  artifacts:
+    paths: [web/dist/]
+
+npm_cli_test:
+  stage: test
+  image: node:24-bookworm-slim
+  script:
+    - corepack enable
+    - corepack prepare pnpm@12.16.1 --activate
+    - pnpm --dir cli/npm install --frozen-lockfile
+    - pnpm --dir cli/npm test
+
+python_cli_test:
+  stage: test
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+  script:
+    - uv run --project cli/python --python "$PYTHON_VERSION" python -m unittest discover -s cli/python/tests
+
+server_build:
+  stage: build
+  image: golang:1.27.1-bookworm
+  needs: [go_test]
+  script:
+    - mkdir -p bin
+    - CGO_ENABLED=0 GOOS=linux go build -trimpath -o bin/hoshilet-server ./cmd/hoshilet-server
+  artifacts:
+    paths: [bin/hoshilet-server]

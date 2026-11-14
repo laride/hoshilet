@@ -1,0 +1,2796 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "hoshilet API",
+    "version": "0.1.0",
+    "description": "Namespace and project IDs are immutable opaque strings. Browser mutations require Origin matching the configured management origin. Times are UTC Unix seconds. Integer DB flags are 0/1."
+  },
+  "paths": {
+    "/api/v1/me": {
+      "get": {
+        "summary": "Current identity and management metadata",
+        "operationId": "get_me",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/logout": {
+      "post": {
+        "summary": "Revoke current credential",
+        "operationId": "post_logout",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/namespaces": {
+      "get": {
+        "summary": "List actual namespace memberships by default; platform administrators may explicitly request all",
+        "operationId": "get_namespaces",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "member",
+                "all"
+              ],
+              "default": "member"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/requests": {
+      "get": {
+        "summary": "List own namespace requests",
+        "operationId": "get_requests",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Request an additional namespace",
+        "operationId": "post_requests",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/keys": {
+      "get": {
+        "summary": "List own API keys without secrets",
+        "operationId": "get_keys",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create an API key; returned token is displayed once",
+        "operationId": "post_keys",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/keys/{key_id}": {
+      "delete": {
+        "summary": "Revoke own key; missing=404, already revoked=200",
+        "operationId": "delete_keys_key_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/namespaces/{namespace_id}/projects": {
+      "get": {
+        "summary": "List projects",
+        "operationId": "get_namespaces_namespace_id_projects",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create root site or child project (namespace admin)",
+        "operationId": "post_namespaces_namespace_id_projects",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/namespaces/{namespace_id}/members": {
+      "get": {
+        "summary": "List namespace members (namespace admin)",
+        "operationId": "get_namespaces_namespace_id_members",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Add or change a registered member (namespace admin)",
+        "operationId": "put_namespaces_namespace_id_members",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gitlab_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "member"
+                    ]
+                  }
+                },
+                "required": [
+                  "gitlab_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/namespaces/{namespace_id}/members/{user_id}": {
+      "delete": {
+        "summary": "Remove member; missing=404, last admin is protected",
+        "operationId": "delete_namespaces_namespace_id_members_user_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "get": {
+        "summary": "Get project and revision",
+        "operationId": "get_projects_project_id",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete project and unpublish immediately",
+        "operationId": "delete_projects_project_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/deployments": {
+      "get": {
+        "summary": "List retained versions",
+        "operationId": "get_projects_project_id_deployments",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Deployment"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/deployments/{deployment_id}": {
+      "delete": {
+        "summary": "Retire a ready non-current version; missing=404, retired/purged=409 (namespace admin)",
+        "operationId": "delete_projects_project_id_deployments_deployment_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deployment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/activate": {
+      "post": {
+        "summary": "Activate or roll back using optimistic revision",
+        "operationId": "post_projects_project_id_activate",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivationInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/activations": {
+      "get": {
+        "summary": "List activation events",
+        "operationId": "get_projects_project_id_activations",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/trusts": {
+      "get": {
+        "summary": "List trusted publishers (namespace admin)",
+        "operationId": "get_projects_project_id_trusts",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Add trusted publisher (namespace admin)",
+        "operationId": "post_projects_project_id_trusts",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrustInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/trusts/{trust_id}": {
+      "delete": {
+        "summary": "Revoke publisher trust; missing=404",
+        "operationId": "delete_projects_project_id_trusts_trust_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "trust_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/issuers": {
+      "get": {
+        "summary": "List configured issuer IDs and origins",
+        "operationId": "get_issuers",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/oidc/exchange": {
+      "post": {
+        "summary": "Exchange GitLab ID token for short-lived project credential",
+        "operationId": "post_oidc_exchange",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "project_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "project_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/deploy": {
+      "post": {
+        "summary": "Upload ZIP; auto-create child project only for an authorized account/namespace API key",
+        "operationId": "post_deploy",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upload"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay returns original upload state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upload"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/zip": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activate",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Project revision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/uploads/{upload_id}": {
+      "get": {
+        "summary": "Get persisted upload state",
+        "operationId": "get_uploads_upload_id",
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upload"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "summary": "Platform admin: settings",
+        "operationId": "get_admin_settings",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Replace all settings; missing or null fields are rejected with 400",
+        "operationId": "put_admin_settings",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/requests": {
+      "get": {
+        "summary": "Platform admin: requests",
+        "operationId": "get_admin_requests",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "summary": "Platform admin: users",
+        "operationId": "get_admin_users",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Preapprove a GitLab numeric user ID; username is fetched on login",
+        "operationId": "post_admin_users",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gitlab_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                },
+                "required": [
+                  "gitlab_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/issuers": {
+      "get": {
+        "summary": "Platform admin: issuers",
+        "operationId": "get_admin_issuers",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Register trusted HTTPS GitLab issuer",
+        "operationId": "post_admin_issuers",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "jwks_url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "jwks_url"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit": {
+      "get": {
+        "summary": "Platform admin: audit",
+        "operationId": "get_admin_audit",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/metrics": {
+      "get": {
+        "summary": "Platform admin: metrics",
+        "operationId": "get_admin_metrics",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/namespaces": {
+      "get": {
+        "summary": "All namespace usage (platform admin only)",
+        "operationId": "get_admin_namespaces",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NamespaceUsage"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/namespaces/{namespace_id}": {
+      "get": {
+        "summary": "Namespace projects and members, including deleted projects awaiting GC",
+        "operationId": "get_admin_namespaces_namespace_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NamespaceUsageDetail"
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/requests/{request_id}": {
+      "post": {
+        "summary": "Approve or reject namespace request",
+        "operationId": "post_admin_requests_request_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approve": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "approve"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "patch": {
+        "summary": "Approve or disable user; disabled users cannot publish and their API keys are revoked",
+        "operationId": "patch_admin_users_user_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "disabled"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/projects/{project_id}": {
+      "patch": {
+        "summary": "Disable or re-enable public site",
+        "operationId": "patch_admin_projects_project_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "disabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "disabled"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/issuers/{issuer_id}": {
+      "patch": {
+        "summary": "Enable or disable CI issuer",
+        "operationId": "patch_admin_issuers_issuer_id",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "array"
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Hoshilet-Server-Message": {
+                "description": "Optional standard Base64 of UTF-8 plain text, at most 512 decoded bytes (684 header bytes). LF allowed; other control characters forbidden. Current server emits on 2xx only; clients display on any status, on stderr.",
+                "schema": {
+                  "type": "string",
+                  "maxLength": 684
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error; 401 invalid credentials, 403 permission denied, 409 conflict, 413 size limit, 408 upload deadline, 422 archive rejected or empty deployment, 429 global/principal capacity reached, 507 insufficient disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "issuer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-hoshilet-session"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "ProjectInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "root",
+              "projects"
+            ],
+            "default": "projects"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "KeyInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "account",
+              "namespace",
+              "project"
+            ]
+          },
+          "target": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 90
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "additionalProperties": false
+      },
+      "TrustInput": {
+        "type": "object",
+        "properties": {
+          "issuer_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Exact branch names, or a standalone * for every branch. all is literal; glob patterns are not supported."
+          },
+          "allow_mr_pipelines": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow same-repository MR pipelines for this trust only; fork MR is always rejected."
+          },
+          "require_ref_protected": {
+            "type": "boolean",
+            "default": false,
+            "description": "Require the signed ref_protected claim to be true (boolean or string). Missing/false claims fail closed."
+          }
+        },
+        "required": [
+          "issuer_id",
+          "repository_id",
+          "branches"
+        ],
+        "additionalProperties": false
+      },
+      "SettingsInput": {
+        "type": "object",
+        "properties": {
+          "max_versions": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "max_versions",
+          "max_bytes"
+        ],
+        "additionalProperties": false
+      },
+      "ActivationInput": {
+        "type": "object",
+        "properties": {
+          "deployment_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "deployment_id",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "Upload": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "deployment_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activate": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "receiving",
+              "validating",
+              "publishing",
+              "complete",
+              "failed"
+            ]
+          },
+          "error": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "namespace_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "current_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "disabled": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Deployment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "uploaded_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "files": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_activated_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "NamespaceUsage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "member_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "project_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retained_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retired_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "used_bytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Logical deployment file bytes; includes ready and retired versions, excludes purged, staging, DB and filesystem allocation overhead."
+      },
+      "NamespaceUsageDetail": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "object"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "disabled": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "deleted": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "current_id": {
+                  "type": "string"
+                },
+                "retained_versions": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "retained_bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "retired_bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "used_bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user_id": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "gitlab_id": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

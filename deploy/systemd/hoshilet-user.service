@@ -1,0 +1,21 @@
+[Unit]
+Description=hoshilet management and publisher (user service)
+
+[Service]
+Type=simple
+StateDirectory=hoshilet
+StateDirectoryMode=0755
+WorkingDirectory=%S/hoshilet
+ExecStart=%h/.local/bin/hoshilet-server -config %E/hoshilet/config.json
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=40
+UMask=0022
+NoNewPrivileges=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=1G
+TasksMax=128
+
+[Install]
+WantedBy=default.target

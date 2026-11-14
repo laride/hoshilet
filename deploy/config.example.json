@@ -1,0 +1,21 @@
+{
+  "listen": "127.0.0.1:8080",
+  "data_dir": "/var/lib/hoshilet",
+  "base_url": "https://hoshilet-admin.example.com",
+  "content_url": "https://hoshilet.example.com",
+  "gitlab_url": "https://gitlab.example.com",
+  "client_id": "REPLACE_WITH_GITLAB_APPLICATION_ID",
+  "client_secret": "REPLACE_WITH_GITLAB_APPLICATION_SECRET",
+  "admin_ids": [
+    1
+  ],
+  "max_archive_bytes": 134217728,
+  "min_free_bytes": 1073741824,
+  "extraction_seconds": 120,
+  "gc_seconds": 600,
+  "worker_memory_mb": 2048,
+  "max_uploads": 4,
+  "max_uploads_per_principal": 1,
+  "upload_timeout_seconds": 120,
+  "server_message": ""
+}

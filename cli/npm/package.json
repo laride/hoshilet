@@ -1,0 +1,51 @@
+{
+  "name": "hoshilet",
+  "version": "0.1.0",
+  "description": "hoshilet static-site uploader with API key and GitLab OIDC authentication",
+  "homepage": "https://github.com/laride/hoshilet#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laride/hoshilet.git",
+    "directory": "cli/npm"
+  },
+  "bin": {
+    "hoshilet": "src/cli.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "bin": {
+      "hoshilet": "dist/hoshilet.mjs"
+    }
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm run typecheck && tsdown",
+    "test": "pnpm run build && tsx --test *.test.ts",
+    "prepack": "pnpm run build && node ../../scripts/gen-cli-readme.mjs npm"
+  },
+  "dependencies": {
+    "yazl": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/yazl": "^3.3.1",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "tsdown": "^0.23.7",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@12.16.1"
+}

@@ -1,0 +1,24 @@
+[Unit]
+Description=hoshilet management and publisher
+After=network-online.target
+
+[Container]
+Image=localhost/hoshilet:0.1.0
+ContainerName=hoshilet
+User=10001:10001
+PublishPort=127.0.0.1:8080:8080
+Volume=/var/lib/hoshilet:/var/lib/hoshilet:z
+Volume=/etc/hoshilet:/etc/hoshilet:ro,z
+Exec=-config /etc/hoshilet/config.json
+ReadOnly=true
+NoNewPrivileges=true
+DropCapability=ALL
+Tmpfs=/tmp:rw,size=64m
+
+[Service]
+Restart=on-failure
+TimeoutStopSec=40
+MemoryMax=3G
+
+[Install]
+WantedBy=multi-user.target
