@@ -1,3 +1,5 @@
+import { readDirectory, storeDirectory } from '../directoryZip';
+import type { UploadEntry } from '../directoryZip';
 import { useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import {
@@ -131,6 +133,9 @@ export function ProjectPage({ ns, projectId, tab }: { ns: Namespace; projectId: 
 function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; onDone: () => Promise<void> }) {
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
+  const directoryInput = useRef<HTMLInputElement>(null);
+  const busy = useRef(false);
+  const [packing, setPacking] = useState(false);
   const [activate, setActivate] = useState(true);
   const [progress, setProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState('');
@@ -138,20 +143,26 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
   const [error, setError] = useState('');
   const disabled = progress !== null || !!project.disabled;
 
-  async function start(file: File) {
-    if (!/\.zip$/i.test(file.name) && file.type !== 'application/zip') {
+  async function start(source: File | (() => Promise<UploadEntry[]>)) {
+    if (busy.current || project.disabled) return;
+    const file = source instanceof File ? source : null;
+    if (file && !/\.zip$/i.test(file.name) && file.type !== 'application/zip') {
       setError('请选择 .zip 文件');
       return;
     }
     setError('');
-    setFileName(file.name);
+    busy.current = true;
+    setFileName(file?.name ?? '目录');
     setProgress(0);
     try {
+      setPacking(!file);
+      const archive = file ?? (await storeDirectory(await (source as () => Promise<UploadEntry[]>)()));
+      setPacking(false);
       await uploadDeployment({
         projectId: project.id,
         revision: project.revision,
         activate,
-        file,
+        file: archive,
         onProgress: setProgress,
       });
       toast.success(activate ? '新版本已上线' : '版本已保存，尚未上线');
@@ -159,7 +170,9 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
       setError(errorMessage(e));
       if (e instanceof ApiError && e.code === 'revision_conflict') toast.info('已刷新站点状态，请重新上传');
     } finally {
+      setPacking(false);
       setProgress(null);
+      busy.current = false;
       await onDone();
     }
   }
@@ -167,8 +180,18 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f && !disabled) void start(f);
+    if (disabled) return;
+    const items = Array.from(e.dataTransfer.items).filter((item) => item.kind === 'file');
+    if (items.length !== 1) {
+      setError('请一次上传一个 ZIP 文件或目录');
+      return;
+    }
+    const entry = items[0].webkitGetAsEntry?.();
+    if (entry?.isDirectory) void start(() => readDirectory(entry as FileSystemDirectoryEntry));
+    else {
+      const file = items[0].getAsFile();
+      if (file) void start(file);
+    }
   }
 
   return (
@@ -176,7 +199,8 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
       title="上传新版本"
       description={
         <>
-          ZIP 包的顶层即网站根目录。构建时请把资源 base path 设为 <code>{sitePath(ns.name, project.name)}</code>。
+          ZIP 包的顶层或所选目录的内容即网站根目录。构建时请把资源 base path 设为{' '}
+          <code>{sitePath(ns.name, project.name)}</code>。
         </>
       }
     >
@@ -188,7 +212,6 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => !disabled && input.current?.click()}
       >
         <input
           ref={input}
@@ -203,22 +226,51 @@ function UploadZone({ ns, project, onDone }: { ns: Namespace; project: Project; 
             e.target.value = '';
           }}
         />
+        <input
+          ref={directoryInput}
+          type="file"
+          {...{ webkitdirectory: '' }}
+          multiple
+          aria-label="选择部署目录"
+          className="visually-hidden"
+          disabled={disabled}
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length)
+              void start(async () =>
+                files.map((file) => ({ file, path: file.webkitRelativePath.split('/').slice(1).join('/') })),
+              );
+            e.target.value = '';
+          }}
+        />
         {progress !== null ? (
           <div className="upload-progress" role="status">
             <FileArchive size={28} aria-hidden />
             <strong>{fileName}</strong>
-            <progress max={100} value={progress < 100 ? progress : undefined} aria-label="上传进度" />
+            <progress max={100} value={!packing && progress < 100 ? progress : undefined} aria-label="上传进度" />
             <span className="muted">
-              {progress < 100 ? `上传中 ${progress}%` : activate ? '正在校验并发布…' : '正在校验…'}
+              {packing
+                ? '正在打包目录…'
+                : progress < 100
+                  ? `上传中 ${progress}%`
+                  : activate
+                    ? '正在校验并发布…'
+                    : '正在校验…'}
             </span>
           </div>
         ) : (
           <>
             <UploadCloud size={32} aria-hidden className="dropzone-icon" />
-            <strong>{project.disabled ? '站点已停用，无法上传' : '拖拽 ZIP 文件到这里'}</strong>
+            <strong>{project.disabled ? '站点已停用，无法上传' : '拖拽 ZIP 文件或目录到这里'}</strong>
             {!project.disabled && (
               <span className="muted">
-                或 <span className="link">点击选择文件</span>
+                <button type="button" className="btn btn-ghost" onClick={() => input.current?.click()}>
+                  点击选择 ZIP 文件
+                </button>{' '}
+                或{' '}
+                <button type="button" className="btn btn-ghost" onClick={() => directoryInput.current?.click()}>
+                  点击选择目录
+                </button>
               </span>
             )}
           </>

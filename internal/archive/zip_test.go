@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -115,4 +116,15 @@ func FuzzExtract(f *testing.F) {
 		}
 		extractBytes(t, b, 1<<20)
 	})
+}
+
+func TestUnsupportedCompressionMessage(t *testing.T) {
+	b := fixture(t, []string{"index.html"}, []byte("hello"), 0644)
+	cd := bytes.Index(b, []byte{'P', 'K', 1, 2})
+	binary.LittleEndian.PutUint16(b[8:], 9)
+	binary.LittleEndian.PutUint16(b[cd+10:], 9)
+	_, err := extractBytes(t, b, 100)
+	if err == nil || !strings.Contains(err.Error(), "Deflate64 (method 9)") || !strings.Contains(err.Error(), "Store or Deflate") {
+		t.Fatalf("expected actionable Deflate64 error, got %v", err)
+	}
 }
