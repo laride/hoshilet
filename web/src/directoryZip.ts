@@ -22,7 +22,8 @@ export async function storeDirectory(entries: UploadEntry[]): Promise<File> {
     if (
       seen.has(path) ||
       name.length > 1024 ||
-      /[\\:\x00-\x1f\x7f]/.test(path) ||
+      /[\\:]/.test(path) ||
+      name.some((byte) => byte < 0x20 || byte === 0x7f) ||
       path.split('/').some((p) => !p || p === '.' || p === '..' || new TextEncoder().encode(p).length > 255) ||
       path.split('/').length > 32
     )
