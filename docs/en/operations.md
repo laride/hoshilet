@@ -109,7 +109,7 @@ The backup includes a consistent SQLite snapshot and all release files. It does 
 
 ### Upgrade
 
-Back up first, then replace the binary or container image and restart. The current version uses schema 4. There's no migration from older prototype schemas — start fresh with a new data directory if needed.
+Back up first, then replace the binary or container image and restart. The current version uses schema 5 and automatically upgrades schema 4, preserving existing branch rules and initializing tag allowlists as empty (no tags allowed). Older prototype schemas still require a new data directory.
 
 ### Restore
 

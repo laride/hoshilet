@@ -58,9 +58,9 @@ URLs use names (`/~team/docs/`), but permissions are bound to immutable IDs. Del
 
 ## OIDC Trust Rules
 
-Each trust rule binds an issuer + GitLab project ID + branch list. All conditions in a rule must be satisfied together — you can't combine permissions across rules.
+Each trust rule binds an issuer + GitLab project ID + branch and tag allowlists. All conditions in a rule must be satisfied together — you can't combine permissions across rules.
 
-- Branch matching: exact names or `*` for all branches. `all` is a literal name.
+- Separate branch and tag allowlists: exact names or patterns with `*` (zero or more characters, including `/`). An empty list denies that ref type; `*` allows all. Other characters are literal.
 - `require_ref_protected` (default: false): strict boolean check on the token's `ref_protected` claim.
 - `allow_mr_pipelines` (default: false): same-repo MRs only, matched by source branch. Cross-fork MRs are always rejected.
 

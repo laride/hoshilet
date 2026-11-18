@@ -39,13 +39,13 @@ CREATE TABLE IF NOT EXISTS activations(id TEXT PRIMARY KEY,project_id TEXT NOT N
 CREATE TABLE IF NOT EXISTS publications(project_id TEXT PRIMARY KEY,deployment_id TEXT NOT NULL,previous_id TEXT NOT NULL,actor TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS credentials(id TEXT PRIMARY KEY,hash TEXT UNIQUE NOT NULL,user_id TEXT NOT NULL DEFAULT '',kind TEXT NOT NULL,scope TEXT NOT NULL DEFAULT 'account',target TEXT NOT NULL DEFAULT '',name TEXT NOT NULL DEFAULT '',expires_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0,last_used_at INTEGER NOT NULL DEFAULT 0,trust_id TEXT NOT NULL DEFAULT '',mr INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS issuers(id TEXT PRIMARY KEY,url TEXT UNIQUE NOT NULL,jwks_url TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS trusts(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),issuer_id TEXT NOT NULL REFERENCES issuers(id),repository_id TEXT NOT NULL,branches TEXT NOT NULL,require_ref_protected INTEGER NOT NULL DEFAULT 0 CHECK(require_ref_protected IN (0,1)),allow_mr_pipelines INTEGER NOT NULL DEFAULT 0 CHECK(allow_mr_pipelines IN (0,1)));
+CREATE TABLE IF NOT EXISTS trusts(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),issuer_id TEXT NOT NULL REFERENCES issuers(id),repository_id TEXT NOT NULL,branches TEXT NOT NULL,tags TEXT NOT NULL DEFAULT '[]',require_ref_protected INTEGER NOT NULL DEFAULT 0 CHECK(require_ref_protected IN (0,1)),allow_mr_pipelines INTEGER NOT NULL DEFAULT 0 CHECK(allow_mr_pipelines IN (0,1)));
 CREATE TABLE IF NOT EXISTS exchanges(issuer_id TEXT NOT NULL,jti TEXT NOT NULL,idem TEXT NOT NULL,credential_id TEXT NOT NULL,secret TEXT NOT NULL,expires_at INTEGER NOT NULL,PRIMARY KEY(issuer_id,jti));
 CREATE TABLE IF NOT EXISTS uploads(id TEXT PRIMARY KEY,project_id TEXT NOT NULL,actor TEXT NOT NULL,idem TEXT NOT NULL,revision INTEGER NOT NULL,activate INTEGER NOT NULL,status TEXT NOT NULL,deployment_id TEXT NOT NULL DEFAULT '',error TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,UNIQUE(actor,idem));
 CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1),max_versions INTEGER NOT NULL,max_bytes INTEGER NOT NULL);
 INSERT OR IGNORE INTO settings VALUES(1,10,104857600);
 CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,created_at INTEGER NOT NULL);
-PRAGMA user_version=4;
+PRAGMA user_version=5;
 `
 
 func Open(c Config) (*App, error) {
@@ -96,10 +96,17 @@ func Open(c Config) (*App, error) {
 		f.Close()
 		return nil, e
 	}
-	if version != 0 && version != 4 {
+	if version != 0 && version != 4 && version != 5 {
 		db.Close()
 		f.Close()
-		return nil, fmt.Errorf("database schema %d is incompatible with pre-release schema 4; initialize a new data directory", version)
+		return nil, fmt.Errorf("database schema %d is incompatible with pre-release schema 5; initialize a new data directory", version)
+	}
+	if version == 4 {
+		if _, e = db.Exec("BEGIN; ALTER TABLE trusts ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'; PRAGMA user_version=5; COMMIT;"); e != nil {
+			db.Close()
+			f.Close()
+			return nil, e
+		}
 	}
 	if _, e = db.Exec("PRAGMA journal_mode=WAL;" + schema); e != nil {
 		db.Close()

@@ -2526,8 +2526,16 @@
             "items": {
               "type": "string"
             },
-            "minItems": 1,
-            "description": "Exact branch names, or a standalone * for every branch. all is literal; glob patterns are not supported."
+            "maxItems": 100,
+            "description": "Branch allowlist. * matches zero or more characters, including /. Omitted or empty denies all branches. Other characters are literal."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "description": "Tag allowlist, e.g. v* or * for all tags. Same wildcard syntax as branches. Omitted or empty denies all tags."
           },
           "allow_mr_pipelines": {
             "type": "boolean",
@@ -2542,8 +2550,7 @@
         },
         "required": [
           "issuer_id",
-          "repository_id",
-          "branches"
+          "repository_id"
         ],
         "additionalProperties": false
       },

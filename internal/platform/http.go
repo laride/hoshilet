@@ -345,20 +345,29 @@ func (a *App) api(w http.ResponseWriter, r *http.Request, p principal) {
 						IssuerID            string   `json:"issuer_id"`
 						RepositoryID        string   `json:"repository_id"`
 						Branches            []string `json:"branches"`
+						Tags                []string `json:"tags"`
 						RequireRefProtected bool     `json:"require_ref_protected"`
 						AllowMR             bool     `json:"allow_mr_pipelines"`
 					}
 					body(r, &b)
-					if !digits(b.RepositoryID) || len(b.Branches) == 0 || len(b.Branches) > 100 || a.one("SELECT id FROM issuers WHERE id=? AND enabled=1", b.IssuerID) == nil {
-						fail(400, "invalid_trust", "Valid issuer, numeric repository ID and branches required")
+					if !digits(b.RepositoryID) || len(b.Branches) > 100 || len(b.Tags) > 100 || a.one("SELECT id FROM issuers WHERE id=? AND enabled=1", b.IssuerID) == nil {
+						fail(400, "invalid_trust", "Valid issuer, numeric repository ID and at most 100 patterns per allowlist required")
 					}
-					for _, s := range b.Branches {
-						if s == "" || len(s) > 1024 || (strings.Contains(s, "*") && s != "*") {
-							fail(400, "invalid_branch", "Invalid branch")
+					for _, patterns := range [][]string{b.Branches, b.Tags} {
+						for _, pattern := range patterns {
+							if strings.TrimSpace(pattern) == "" || len(pattern) > 1024 {
+								fail(400, "invalid_ref_pattern", "Invalid branch or tag pattern")
+							}
 						}
 					}
+					if b.Branches == nil {
+						b.Branches = []string{}
+					}
+					if b.Tags == nil {
+						b.Tags = []string{}
+					}
 					tid := id()
-					a.exec("INSERT INTO trusts(id,project_id,issuer_id,repository_id,branches,require_ref_protected,allow_mr_pipelines) VALUES(?,?,?,?,?,?,?)", tid, pid, b.IssuerID, b.RepositoryID, encode(b.Branches), b.RequireRefProtected, b.AllowMR)
+					a.exec("INSERT INTO trusts(id,project_id,issuer_id,repository_id,branches,tags,require_ref_protected,allow_mr_pipelines) VALUES(?,?,?,?,?,?,?,?)", tid, pid, b.IssuerID, b.RepositoryID, encode(b.Branches), encode(b.Tags), b.RequireRefProtected, b.AllowMR)
 					a.audit(p.ID, "trust.create", tid)
 					send(w, 201, row{"id": tid})
 					return

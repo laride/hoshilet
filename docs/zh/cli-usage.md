@@ -69,13 +69,14 @@ export HOSHILET_ID_TOKEN=$CI_JOB_JWT_V2   # 或者使用 GitLab 的 id_tokens
 hoshilet deploy ./dist --oidc --project-id PROJECT_ID
 ```
 
-`audience` 必须等于管理站点的 origin。namespace admin 需要预先在 Web 管理界面配置 OIDC 信任规则，绑定 GitLab issuer、GitLab 数字项目 ID 和允许的分支。
+`audience` 必须等于管理站点的 origin。namespace admin 需要预先在 Web 管理界面配置 OIDC 信任规则，绑定 GitLab issuer、GitLab 数字项目 ID 以及独立的分支和 tag 白名单。
 
-分支匹配规则：
+分支和 tag 白名单匹配规则：
 
-- `*` 表示所有分支（不含 tag）。
+- 两份白名单独立匹配；不填或空列表表示不允许该类型发布。
+- `*` 匹配零个或多个字符（包含 `/`），例如分支 `release/*`、tag `v*`。单独的 `*` 允许该类型的所有引用。
 - `all` 是字面量——只匹配名为 `all` 的分支。
-- 不支持 `release/*` 之类的 glob。
+- 仅 `*` 是通配符，其他字符按字面匹配；匹配区分大小写且覆盖完整名称。
 
 每条信任规则可以独立设置：
 

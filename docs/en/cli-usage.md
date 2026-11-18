@@ -69,13 +69,14 @@ export HOSHILET_ID_TOKEN=$CI_JOB_JWT_V2   # or use GitLab's id_tokens
 hoshilet deploy ./dist --oidc --project-id PROJECT_ID
 ```
 
-The `audience` must match the management origin. A namespace admin needs to configure OIDC trust rules in the web UI beforehand, binding the GitLab issuer, the numeric GitLab project ID, and allowed branches.
+The `audience` must match the management origin. A namespace admin needs to configure OIDC trust rules in the web UI beforehand, binding the GitLab issuer, the numeric GitLab project ID, and separate branch and tag allowlists.
 
-Branch matching rules:
+Branch and tag allowlist matching rules:
 
-- `*` means all branches (but not tags).
+- The two allowlists are independent. An omitted or empty list denies all refs of that type.
+- `*` matches zero or more characters, including `/`, e.g. branches `release/*` and tags `v*`. A standalone `*` allows every ref of that type.
 - `all` is a literal branch name — it only matches a branch literally named `all`.
-- Glob patterns like `release/*` are not supported.
+- Only `*` is a wildcard; other characters are literal. Matching is case-sensitive and covers the entire name.
 
 Each trust rule can independently set:
 

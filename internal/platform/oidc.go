@@ -8,7 +8,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"math/big"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -34,8 +36,8 @@ func claim(c jwt.MapClaims, k string) string {
 	}
 	return ""
 }
-func matchClaims(c jwt.MapClaims, repo string, branches []string, allowMR, requireProtected bool) bool {
-	if claim(c, "ref_type") != "branch" || claim(c, "project_id") != repo {
+func matchClaims(c jwt.MapClaims, repo string, branches, tags []string, allowMR, requireProtected bool) bool {
+	if claim(c, "project_id") != repo {
 		return false
 	}
 	for _, key := range []string{"job_project_id", "source_project_id"} {
@@ -43,8 +45,16 @@ func matchClaims(c jwt.MapClaims, repo string, branches []string, allowMR, requi
 			return false
 		}
 	}
+	patterns := branches
+	switch claim(c, "ref_type") {
+	case "branch":
+	case "tag":
+		patterns = tags
+	default:
+		return false
+	}
 	mr := claim(c, "pipeline_source") == "merge_request_event"
-	if mr && (!allowMR || claim(c, "job_project_id") != repo) {
+	if mr && (claim(c, "ref_type") != "branch" || !allowMR || claim(c, "job_project_id") != repo) {
 		return false
 	}
 	if requireProtected {
@@ -57,8 +67,10 @@ func matchClaims(c jwt.MapClaims, repo string, branches []string, allowMR, requi
 	if ref == "" {
 		return false
 	}
-	for _, b := range branches {
-		if b == "*" || b == ref {
+	for _, pattern := range patterns {
+		// Only * is special, and it also matches across / in ref names.
+		expression := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), `\*`, ".*") + "$"
+		if matched, _ := regexp.MatchString(expression, ref); matched {
 			return true
 		}
 	}
@@ -147,15 +159,16 @@ func (a *App) exchange(w http.ResponseWriter, r *http.Request) {
 	}
 	var trust row
 	for _, t := range a.rows("SELECT * FROM trusts WHERE project_id=? AND issuer_id=?", b.ProjectID, issuer["id"]) {
-		var branches []string
+		var branches, tags []string
 		json.Unmarshal([]byte(str(t, "branches")), &branches)
-		if matchClaims(c, str(t, "repository_id"), branches, num(t, "allow_mr_pipelines") == 1, num(t, "require_ref_protected") == 1) {
+		json.Unmarshal([]byte(str(t, "tags")), &tags)
+		if matchClaims(c, str(t, "repository_id"), branches, tags, num(t, "allow_mr_pipelines") == 1, num(t, "require_ref_protected") == 1) {
 			trust = t
 			break
 		}
 	}
 	if trust == nil {
-		fail(403, "untrusted_publisher", "Repository, source branch or MR policy does not match; MR requires job_project_id and the same source/execution repository")
+		fail(403, "untrusted_publisher", "Repository, branch/tag allowlist, protection or MR policy does not match; MR requires job_project_id and the same source/execution repository")
 	}
 	old := a.one("SELECT * FROM exchanges WHERE issuer_id=? AND jti=?", issuer["id"], claim(c, "jti"))
 	if old != nil {

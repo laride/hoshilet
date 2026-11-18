@@ -98,6 +98,7 @@ export interface Trust {
   issuer_url: string;
   repository_id: string;
   branches: string;
+  tags: string;
   require_ref_protected: number;
 }
 

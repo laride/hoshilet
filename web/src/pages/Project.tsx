@@ -537,15 +537,17 @@ function AddTrustDialog({
   const [issuer, setIssuer] = useState('');
   const [repo, setRepo] = useState('');
   const [branches, setBranches] = useState('main');
+  const [tags, setTags] = useState('');
   const [protectedRef, setProtectedRef] = useState(false);
   const [allowMR, setAllowMR] = useState(false);
   const list = branches
     .split(/[,\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const branchError = list.some((b) => b.includes('*') && b !== '*')
-    ? '不支持通配符模式，只能填写精确分支名或单独的 *'
-    : '';
+  const tagList = tags
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   const repoError = repo && !/^\d+$/.test(repo) ? '请填写 GitLab 项目的数字 ID' : '';
   return (
     <FormDialog
@@ -554,12 +556,13 @@ function AddTrustDialog({
       title="添加发布信任"
       description="允许指定 GitLab 仓库的 CI 作业通过 OIDC 发布此站点。"
       submitLabel="添加信任"
-      canSubmit={!!repo && !repoError && list.length > 0 && !branchError}
+      canSubmit={!!repo && !repoError && !!enabled.length}
       onSubmit={async () => {
         await api(`projects/${project.id}/trusts`, 'POST', {
           issuer_id: issuer || enabled[0]?.id,
           repository_id: repo,
           branches: list,
+          tags: tagList,
           require_ref_protected: protectedRef,
           allow_mr_pipelines: allowMR,
         });
@@ -583,14 +586,12 @@ function AddTrustDialog({
       </Field>
       <Field
         label="允许的分支"
-        error={branchError}
-        hint={
-          <>
-            多个分支用逗号分隔；<code>*</code> 匹配所有分支（不含 tag）。
-          </>
-        }
+        hint="多个模式用逗号分隔；支持 release/*，单独的 * 允许所有分支。留空不允许任何分支发布。"
       >
-        <Input value={branches} onChange={(e) => setBranches(e.target.value)} placeholder="main, release" />
+        <Input value={branches} onChange={(e) => setBranches(e.target.value)} placeholder="main, release/*" />
+      </Field>
+      <Field label="允许的 tag" hint="多个模式用逗号分隔；支持 v*，单独的 * 允许所有 tag。留空不允许任何 tag 发布。">
+        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="v*, release/*" />
       </Field>
       <Switch
         checked={allowMR}
@@ -601,7 +602,7 @@ function AddTrustDialog({
       <Switch
         checked={protectedRef}
         onChange={setProtectedRef}
-        label="仅限受保护分支"
+        label="仅限受保护分支或 tag"
         description="开启后，要求 CI token 中 ref_protected 为 true。"
       />
     </FormDialog>
@@ -669,7 +670,8 @@ function CiTab({ project }: { project: Project }) {
                   <th>GitLab 实例</th>
                   <th>项目 ID</th>
                   <th>分支</th>
-                  <th>受保护分支</th>
+                  <th>Tag</th>
+                  <th>受保护引用</th>
                   <th>MR 流水线</th>
                   <th className="actions-col">
                     <span className="visually-hidden">操作</span>
@@ -683,9 +685,20 @@ function CiTab({ project }: { project: Project }) {
                     <td className="mono">{t.repository_id}</td>
                     <td>
                       <span className="chips">
+                        {parseBranches(t.branches).length === 0 && <span className="muted">不允许</span>}
                         {parseBranches(t.branches).map((b) => (
                           <Badge key={b} tone={b === '*' ? 'warning' : 'neutral'}>
                             {b === '*' ? '所有分支' : b}
+                          </Badge>
+                        ))}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="chips">
+                        {parseBranches(t.tags).length === 0 && <span className="muted">不允许</span>}
+                        {parseBranches(t.tags).map((tag) => (
+                          <Badge key={tag} tone={tag === '*' ? 'warning' : 'neutral'}>
+                            {tag === '*' ? '所有 tag' : tag}
                           </Badge>
                         ))}
                       </span>
