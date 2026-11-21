@@ -202,10 +202,10 @@ func TestNamespaceRequestsAndSettings(t *testing.T) {
 }
 func TestMRClaimPolicy(t *testing.T) {
 	base := jwt.MapClaims{"project_id": "42", "job_project_id": "42", "ref_type": "branch", "ref": "feature", "pipeline_source": "merge_request_event"}
-	if matchClaims(base, "42", []string{"*"}, false, false) {
+	if matchClaims(base, "42", []string{"*"}, nil, false, false) {
 		t.Fatal("MR enabled unexpectedly")
 	}
-	if !matchClaims(base, "42", []string{"feature"}, true, false) {
+	if !matchClaims(base, "42", []string{"feature"}, nil, true, false) {
 		t.Fatal("same-project MR rejected")
 	}
 	for _, change := range []jwt.MapClaims{{"job_project_id": "43"}, {"project_id": "43"}, {"source_project_id": "43"}, {"ref_type": "tag"}, {"job_project_id": ""}, {"ref": "main"}} {
@@ -216,7 +216,7 @@ func TestMRClaimPolicy(t *testing.T) {
 		for k, v := range change {
 			c[k] = v
 		}
-		if matchClaims(c, "42", []string{"feature"}, true, false) {
+		if matchClaims(c, "42", []string{"feature"}, nil, true, false) {
 			t.Fatalf("accepted %v", change)
 		}
 	}
@@ -276,6 +276,18 @@ func TestOIDCExchangeAndPolicyRevocation(t *testing.T) {
 	a.exec("INSERT INTO trusts(id,project_id,issuer_id,repository_id,branches,allow_mr_pipelines) VALUES('fallback',?,'gitlab','42','[\"*\"]',1)", q["id"])
 	a.exec("UPDATE trusts SET allow_mr_pipelines=0 WHERE id='trust'")
 	decode(t, call(a, "GET", "projects/"+str(q, "id"), token, nil), 403)
+	// Tags require their own allowlist even when all branches are trusted.
+	claims["pipeline_source"] = "push"
+	claims["ref_type"] = "tag"
+	claims["ref"] = "v1.0"
+	claims["jti"] = "tag"
+	decode(t, exchange(claims, "tag-exchange"), 403)
+	a.exec("UPDATE trusts SET branches='[]',tags='[\"v*\"]' WHERE id='trust'")
+	tagCredential := decode(t, exchange(claims, "tag-exchange"), 200)
+	decode(t, call(a, "GET", "projects/"+str(q, "id"), str(tagCredential, "access_token"), nil), 200)
+	claims["ref"] = "nightly"
+	claims["jti"] = "tag-denied"
+	decode(t, exchange(claims, "tag-denied"), 403)
 	claims["aud"] = "https://wrong.test"
 	claims["jti"] = "two"
 	decode(t, exchange(claims, "exchange-second"), 401)

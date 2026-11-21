@@ -60,6 +60,30 @@ hoshilet activate DEPLOYMENT_ID --project-id PROJECT_ID
 hoshilet --json deploy ./dist --namespace team --project docs
 ```
 
+## 私有 CA
+
+使用 `--extra-ca-certs FILE` 追加信任的 CA 证书，同时保留运行时默认信任库：
+
+```sh
+hoshilet --extra-ca-certs company-ca.pem deploy ./dist --project-id PROJECT_ID
+
+# 可以重复传入多个文件，每个文件也可以包含多张 PEM 证书。
+hoshilet deployments list --project-id PROJECT_ID \
+  --extra-ca-certs company-ca.pem --extra-ca-certs team-ca.pem
+```
+
+参数可放在子命令前后，对本次命令中的所有 HTTPS 请求生效，包括 OIDC token 交换。证书及主机名校验仍然启用；证书文件不存在或格式无效时，命令会报错退出。
+
+Python CLI 不增加依赖，也不改变版本要求（Python 3.10–3.15）。
+npm CLI 使用的原生 TLS CA API 在 Node.js 22.19 和 Node.js 24.5 及后续版本中可用。不使用此参数时，仍保持现有的 Node.js 22 最低要求。较旧的 Node.js 可以改用运行时启动环境变量：
+
+```sh
+NODE_EXTRA_CA_CERTS=/path/to/company-ca-bundle.pem \
+  hoshilet deploy ./dist --project-id PROJECT_ID
+```
+
+`NODE_EXTRA_CA_CERTS` 同样采用追加语义，但只在 Node.js 启动时读取。如果已经设置了该变量，`--extra-ca-certs` 也会保留其中的证书。
+
 ## GitLab CI（OIDC）
 
 除了静态 API Key，还可以用 GitLab CI OIDC token 认证：
@@ -69,13 +93,14 @@ export HOSHILET_ID_TOKEN=$CI_JOB_JWT_V2   # 或者使用 GitLab 的 id_tokens
 hoshilet deploy ./dist --oidc --project-id PROJECT_ID
 ```
 
-`audience` 必须等于管理站点的 origin。namespace admin 需要预先在 Web 管理界面配置 OIDC 信任规则，绑定 GitLab issuer、GitLab 数字项目 ID 和允许的分支。
+`audience` 必须等于管理站点的 origin。namespace admin 需要预先在 Web 管理界面配置 OIDC 信任规则，绑定 GitLab issuer、GitLab 数字项目 ID 以及独立的分支和 tag 白名单。
 
-分支匹配规则：
+分支和 tag 白名单匹配规则：
 
-- `*` 表示所有分支（不含 tag）。
+- 两份白名单独立匹配；不填或空列表表示不允许该类型发布。
+- `*` 匹配零个或多个字符（包含 `/`），例如分支 `release/*`、tag `v*`。单独的 `*` 允许该类型的所有引用。
 - `all` 是字面量——只匹配名为 `all` 的分支。
-- 不支持 `release/*` 之类的 glob。
+- 仅 `*` 是通配符，其他字符按字面匹配；匹配区分大小写且覆盖完整名称。
 
 每条信任规则可以独立设置：
 

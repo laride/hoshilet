@@ -64,7 +64,22 @@ function toError(status: number, payload: unknown, fallback: string): ApiError {
   const code = err?.code ?? 'http_' + status;
   const raw = err?.message ?? fallback;
   let message = codeMessages[code] ?? notFoundMessages[raw] ?? raw;
-  if (code === 'invalid_archive') message = '压缩包校验失败：' + raw.replace(/^Archive rejected:\s*/, '');
+  if (code === 'invalid_archive') {
+    const detail = raw.replace(/^Archive rejected:\s*/, '');
+    const reasons: [string, string][] = [
+      ['unsupported ZIP compression Deflate64', '暂不支持 Deflate64，请改用 Store 或 Deflate，或直接选择目录上传。'],
+      ['unsupported ZIP compression', '不支持此 ZIP 压缩算法，请改用 Store 或 Deflate，或直接选择目录上传。'],
+      ['ZIP64 is not supported', '暂不支持 ZIP64，请生成普通 ZIP，或直接选择目录上传。'],
+      ['encrypted ZIP', '不支持加密 ZIP，请移除密码后上传。'],
+      ['multi-volume ZIP', '不支持分卷 ZIP，请合并为单个 ZIP 后上传。'],
+      ['unsupported ZIP flags', '此 ZIP 使用了不支持的格式标志，请重新打包后上传。'],
+      ['ZIP entries overlap', 'ZIP 条目存在重叠、间隙或前缀数据，请重新打包后上传。'],
+      ['invalid ZIP structure', 'ZIP 结构不完整或文件头信息不一致，请重新打包后上传。'],
+      ['unpacked size exceeds limit', '解压后的大小超过平台限制。'],
+      ['ZIP entry count exceeds', 'ZIP 条目数超过 10,000。'],
+    ];
+    message = '压缩包校验失败：' + (reasons.find(([prefix]) => detail.startsWith(prefix))?.[1] ?? detail);
+  }
   if (code === 'not_found' && !notFoundMessages[raw]) message = '资源不存在';
   return new ApiError(status, code, message);
 }

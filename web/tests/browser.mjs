@@ -93,8 +93,9 @@ try {
   await page.getByRole('link', { name: 'CI 发布' }).click();
   await page.getByRole('button', { name: '添加信任' }).click();
   await dialog(page).getByLabel('GitLab 项目 ID').fill('42');
-  await dialog(page).getByLabel('允许的分支').fill('all');
-  await dialog(page).getByRole('switch', { name: '仅限受保护分支' }).check();
+  await dialog(page).getByLabel('允许的分支').fill('all, release/*');
+  await dialog(page).getByLabel('允许的 tag').fill('v*');
+  await dialog(page).getByRole('switch', { name: '仅限受保护分支或 tag' }).check();
   const mrSwitch = dialog(page).getByRole('switch', { name: '允许同仓库 MR 流水线发布' });
   assert.equal(await mrSwitch.isChecked(), false);
   await mrSwitch.check();
@@ -104,9 +105,24 @@ try {
   ]);
   const trusts = await trustResponse.json();
   assert.equal(trusts.length, 1);
-  assert.equal(trusts[0].branches, '["all"]');
+  assert.equal(trusts[0].branches, '["all","release/*"]');
+  assert.equal(trusts[0].tags, '["v*"]');
   assert.equal(trusts[0].require_ref_protected, 1);
   assert.equal(trusts[0].allow_mr_pipelines, 1);
+
+  // Empty branch allowlists allow tag-only rules; both lists may be empty.
+  for (const tags of ['*', '']) {
+    await page.getByRole('button', { name: '添加信任' }).click();
+    await dialog(page).getByLabel('GitLab 项目 ID').fill('42');
+    await dialog(page).getByLabel('允许的分支').fill('');
+    await dialog(page).getByLabel('允许的 tag').fill(tags);
+    const [response] = await Promise.all([
+      getAfter(page, '/trusts'),
+      dialog(page).getByRole('button', { name: '添加信任' }).click(),
+    ]);
+    const rules = await response.json();
+    assert.ok(rules.some((rule) => rule.branches === '[]' && rule.tags === JSON.stringify(tags ? [tags] : [])));
+  }
 
   // API key: create project-scoped key, then revoke it
   await page.getByRole('link', { name: 'API Keys' }).click();

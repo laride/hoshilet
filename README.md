@@ -16,13 +16,14 @@ The URL `/~team/docs/` maps to `public/team/docs/` on disk (no `~` in local path
 The npm and PyPI packages are both called `hoshilet` and provide the same `hoshilet` command. Pick whichever you prefer:
 
 ```sh
-# Python
-uv build --project cli/python --out-dir dist/python
-uv tool install dist/python/hoshilet-0.1.0-py3-none-any.whl
+# Python (uv)
+uv tool install hoshilet
+
+# Python (pip)
+pip install hoshilet
 
 # Node.js
-pnpm --dir cli/npm pack --pack-destination ../../dist/npm
-npm install -g ./dist/npm/hoshilet-0.1.0.tgz
+npm install -g hoshilet
 ```
 
 ## Quick Start

@@ -5,6 +5,7 @@ import http.client
 import json
 import os
 from pathlib import Path
+import ssl
 import stat
 import sys
 import tempfile
@@ -15,7 +16,7 @@ from .messages import HEADER, ServerMessages
 
 
 class Client:
-    def __init__(self, base, token=None):
+    def __init__(self, base, token=None, extra_ca_certs=()):
         parsed = urllib.parse.urlsplit(base)
         if (
             parsed.scheme not in ('https', 'http')
@@ -30,14 +31,22 @@ class Client:
             raise ValueError('HTTPS is required except on loopback')
         self.base, self.token = parsed, token
         self.messages = ServerMessages()
+        self.ssl_context = None
+        if extra_ca_certs:
+            self.ssl_context = ssl.create_default_context()
+            for cafile in extra_ca_certs:
+                try:
+                    self.ssl_context.load_verify_locations(cafile=cafile)
+                except (OSError, ValueError) as exc:
+                    raise ValueError(f'Cannot load --extra-ca-certs {cafile}: {exc}') from exc
 
     def request(self, method, route, data=None, archive=None, headers=None):
-        cls = (
-            http.client.HTTPSConnection
-            if self.base.scheme == 'https'
-            else http.client.HTTPConnection
-        )
-        conn = cls(self.base.hostname, self.base.port, timeout=720)
+        if self.base.scheme == 'https':
+            conn = http.client.HTTPSConnection(
+                self.base.hostname, self.base.port, timeout=720, context=self.ssl_context
+            )
+        else:
+            conn = http.client.HTTPConnection(self.base.hostname, self.base.port, timeout=720)
         h = dict(headers or {})
         if self.token:
             h['Authorization'] = 'Bearer ' + self.token
@@ -104,11 +113,22 @@ def parser():
         help='Management origin (or HOSHILET_SERVER)',
     )
     p.add_argument('--json', action='store_true', help='Machine-readable result')
+    ca_help = 'Append trusted CA certificates from a PEM file (repeatable)'
+    p.add_argument('--extra-ca-certs', action='append', default=[], metavar='FILE', help=ca_help)
     sub = p.add_subparsers(dest='command', required=True)
 
-    def common(command):
+    def common(command, ca_dest='command_extra_ca_certs'):
         command.add_argument('--server', default=argparse.SUPPRESS)
         command.add_argument('--json', action='store_true', default=argparse.SUPPRESS)
+        # Subparsers use separate namespaces; keep each level's CA files when merging.
+        command.add_argument(
+            '--extra-ca-certs',
+            dest=ca_dest,
+            action='append',
+            default=[],
+            metavar='FILE',
+            help=ca_help,
+        )
 
     d = sub.add_parser('deploy')
     common(d)
@@ -126,7 +146,7 @@ def parser():
     common(deployment_parser)
     listings = deployment_parser.add_subparsers(dest='subcommand', required=True)
     listing = listings.add_parser('list')
-    common(listing)
+    common(listing, 'listing_extra_ca_certs')
     listing.add_argument('--project-id', required=True)
     a = sub.add_parser('activate')
     common(a)
@@ -139,7 +159,12 @@ def parser():
 def execute(args):
     if not args.server:
         raise ValueError('Set HOSHILET_SERVER or --server')
-    client = Client(args.server, os.getenv('HOSHILET_API_KEY'))
+    ca_files = (
+        args.extra_ca_certs
+        + args.command_extra_ca_certs
+        + getattr(args, 'listing_extra_ca_certs', [])
+    )
+    client = Client(args.server, os.getenv('HOSHILET_API_KEY'), ca_files)
     if args.command == 'deploy':
         idem = args.idempotency_key or str(uuid.uuid4())
         if args.oidc:

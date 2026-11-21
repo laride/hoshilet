@@ -19,7 +19,7 @@ import (
 const MaxEntries = 10000
 
 var ErrEmptyDeployment = errors.New("empty deployment: at least one regular file is required")
-var errFormat = errors.New("invalid or unsupported ZIP structure")
+var errFormat = errors.New("invalid ZIP structure: archive is truncated or headers are inconsistent")
 
 type Result struct {
 	Size  int64 `json:"size"`
@@ -91,6 +91,15 @@ func Extract(src, dst string, limit int64) (Result, error) {
 		return result, errFormat
 	}
 	eo := tail[end:]
+	if u16(eo[4:]) != 0 || u16(eo[6:]) != 0 {
+		return result, fmt.Errorf("multi-volume ZIP archives are not supported")
+	}
+	if u16(eo[10:]) == 0xffff || u32(eo[16:]) == 0xffffffff || u32(eo[12:]) == 0xffffffff {
+		return result, fmt.Errorf("ZIP64 is not supported; use a classic ZIP archive")
+	}
+	if u16(eo[10:]) > MaxEntries {
+		return result, fmt.Errorf("ZIP entry count exceeds limit of %d", MaxEntries)
+	}
 	cdOffset, cdSize := int64(u32(eo[16:])), int64(u32(eo[12:]))
 	entries := int(u16(eo[10:]))
 	if u16(eo[4:]) != 0 || u16(eo[6:]) != 0 || int(u16(eo[8:])) != entries || entries == 0 || entries > MaxEntries || cdOffset+cdSize != size-tailLen+int64(end) {
@@ -128,7 +137,10 @@ func Extract(src, dst string, limit int64) (Result, error) {
 				return result, errFormat
 			}
 			tag, l := u16(head[x:]), int(u16(head[x+2:]))
-			if tag == 1 || x+4+l > nl+xl {
+			if tag == 1 {
+				return result, fmt.Errorf("ZIP64 is not supported; use a classic ZIP archive")
+			}
+			if x+4+l > nl+xl {
 				return result, errFormat
 			}
 			x += 4 + l
@@ -136,8 +148,18 @@ func Extract(src, dst string, limit int64) (Result, error) {
 		if string(head[:nl]) != z.Name || !validName(z.Name) {
 			return result, fmt.Errorf("unsafe ZIP path")
 		}
-		if z.Flags & ^uint16(0x080e) != 0 || (z.Method != zip.Store && z.Method != zip.Deflate) {
-			return result, errFormat
+		if z.Flags&0x41 != 0 {
+			return result, fmt.Errorf("encrypted ZIP entries are not supported: %q", z.Name)
+		}
+		if z.Method != zip.Store && z.Method != zip.Deflate {
+			method := fmt.Sprintf("method %d", z.Method)
+			if z.Method == 9 {
+				method = "Deflate64 (method 9)"
+			}
+			return result, fmt.Errorf("unsupported ZIP compression %s: %q; use Store or Deflate", method, z.Name)
+		}
+		if z.Flags & ^uint16(0x080e) != 0 {
+			return result, fmt.Errorf("unsupported ZIP flags 0x%04x: %q", z.Flags, z.Name)
 		}
 		mode := z.Mode()
 		dir := strings.HasSuffix(z.Name, "/")
@@ -171,7 +193,10 @@ func Extract(src, dst string, limit int64) (Result, error) {
 				return result, errFormat
 			}
 			l := int(u16(lh[x+2:]))
-			if u16(lh[x:]) == 1 || x+4+l > ln+lx {
+			if u16(lh[x:]) == 1 {
+				return result, fmt.Errorf("ZIP64 is not supported; use a classic ZIP archive")
+			}
+			if x+4+l > ln+lx {
 				return result, errFormat
 			}
 			x += 4 + l
@@ -218,7 +243,7 @@ func Extract(src, dst string, limit int64) (Result, error) {
 	last := int64(0)
 	for _, s := range spans {
 		if s.start != last {
-			return result, errFormat
+			return result, fmt.Errorf("ZIP entries overlap or contain gaps/prefix data")
 		}
 		last = s.end
 	}

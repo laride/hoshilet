@@ -49,8 +49,14 @@ schemas = {
             "branches": {
                 "type": "array",
                 "items": s,
-                "minItems": 1,
-                "description": "Exact branch names, or a standalone * for every branch. all is literal; glob patterns are not supported.",
+                "maxItems": 100,
+                "description": "Branch allowlist. * matches zero or more characters, including /. Omitted or empty denies all branches. Other characters are literal.",
+            },
+            "tags": {
+                "type": "array",
+                "items": s,
+                "maxItems": 100,
+                "description": "Tag allowlist, e.g. v* or * for all tags. Same wildcard syntax as branches. Omitted or empty denies all tags.",
             },
             "allow_mr_pipelines": {
                 "type": "boolean",
@@ -63,7 +69,7 @@ schemas = {
                 "description": "Require the signed ref_protected claim to be true (boolean or string). Missing/false claims fail closed.",
             },
         },
-        ["issuer_id", "repository_id", "branches"],
+        ["issuer_id", "repository_id"],
     ),
     "SettingsInput": obj(
         {

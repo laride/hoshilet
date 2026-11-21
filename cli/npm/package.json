@@ -1,6 +1,6 @@
 {
   "name": "hoshilet",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "hoshilet static-site uploader with API key and GitLab OIDC authentication",
   "homepage": "https://github.com/laride/hoshilet#readme",
   "license": "MIT",
