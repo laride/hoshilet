@@ -60,6 +60,30 @@ Add `--json` to any command for machine-readable JSON output on stdout:
 hoshilet --json deploy ./dist --namespace team --project docs
 ```
 
+## Private Certificate Authorities
+
+Use `--extra-ca-certs FILE` to append trusted CA certificates while retaining the runtime's default trust store:
+
+```sh
+hoshilet --extra-ca-certs company-ca.pem deploy ./dist --project-id PROJECT_ID
+
+# Repeat the option for multiple files. Each file can contain multiple PEM certificates.
+hoshilet deployments list --project-id PROJECT_ID \
+  --extra-ca-certs company-ca.pem --extra-ca-certs team-ca.pem
+```
+
+The option works before or after subcommands and applies to every HTTPS request in that invocation, including OIDC token exchange. Certificate and hostname verification remain enabled. Missing or invalid certificate files cause the command to fail.
+
+The Python CLI needs no additional dependencies or version changes (Python 3.10–3.15).
+The npm CLI uses native TLS CA APIs available in Node.js 22.19 and Node.js 24.5 or later releases. Without this option, the existing Node.js 22 minimum still applies. On older Node.js versions, use the runtime's startup environment variable instead:
+
+```sh
+NODE_EXTRA_CA_CERTS=/path/to/company-ca-bundle.pem \
+  hoshilet deploy ./dist --project-id PROJECT_ID
+```
+
+`NODE_EXTRA_CA_CERTS` also appends certificates, but is only read when Node.js starts. If it is already set, `--extra-ca-certs` retains those certificates as well.
+
 ## GitLab CI (OIDC)
 
 Instead of static API keys, you can authenticate with a GitLab CI OIDC token:

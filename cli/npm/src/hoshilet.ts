@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
 import yazl from 'yazl';
 import { HEADER, serverMessages } from './messages.ts';
+import { appendCACertificates } from './ca.ts';
 
 interface ArchiveEntry {
   file: string;
@@ -126,6 +127,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     allowPositionals: true,
     options: {
       server: { type: 'string' },
+      'extra-ca-certs': { type: 'string', multiple: true },
       json: { type: 'boolean' },
       namespace: { type: 'string' },
       project: { type: 'string' },
@@ -139,12 +141,13 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   });
   if (v.help) {
     console.log(
-      'hoshilet [--server ORIGIN] [--json] deploy DIRECTORY_OR_ZIP [--namespace NAME] [--project NAME] [--project-id ID] [--no-activate] [--oidc] [--revision N] [--idempotency-key KEY]\nhoshilet deployments list --project-id ID\nhoshilet activate DEPLOYMENT_ID --project-id ID [--revision N]\nEnvironment: HOSHILET_SERVER, HOSHILET_API_KEY, HOSHILET_ID_TOKEN',
+      'hoshilet [--server ORIGIN] [--extra-ca-certs FILE] [--json] deploy DIRECTORY_OR_ZIP [--namespace NAME] [--project NAME] [--project-id ID] [--no-activate] [--oidc] [--revision N] [--idempotency-key KEY]\nhoshilet deployments list --project-id ID\nhoshilet activate DEPLOYMENT_ID --project-id ID [--revision N]\n--extra-ca-certs FILE: append trusted PEM CA certificates; repeat for multiple files (Node.js 22.19+ or 24.5+)\nEnvironment: HOSHILET_SERVER, HOSHILET_API_KEY, HOSHILET_ID_TOKEN',
     );
     return 0;
   }
   const server = v.server || process.env.HOSHILET_SERVER;
   if (!server) throw Error('Set HOSHILET_SERVER or --server');
+  await appendCACertificates(v['extra-ca-certs']);
   const client = makeClient(server, process.env.HOSHILET_API_KEY);
   let result: unknown;
   if (p[0] === 'deploy') {

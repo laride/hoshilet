@@ -34,7 +34,7 @@ test:
 	uv run --project cli/python python -m unittest discover -s cli/python/tests
 cli-test:
 	pnpm --dir cli/npm build
-	HOSHILET_TEST_CLI=1 go test ./internal/platform -run 'TestCLI(Contract|OIDC)|TestSlowHTTPUploadDeadline|TestCLIServerMessages' -count=1
+	HOSHILET_TEST_CLI=1 go test ./internal/platform -run 'TestCLI(Contract|OIDC|ExtraCAs)|TestSlowHTTPUploadDeadline|TestCLIServerMessages' -count=1
 browser-test: web
 	HOSHILET_TEST_BROWSER=1 go test ./internal/platform -run TestBrowser -count=1
 cli-readme:
